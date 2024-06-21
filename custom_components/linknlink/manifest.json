@@ -1,7 +1,7 @@
 {
   "domain": "linknlink",
   "name": "LinknLink",
-  "codeowners": ["@xuanxuan000"],
+  "codeowners": ["@linknlink"],
   "config_flow": true,
   "dhcp": [
     {
@@ -11,7 +11,7 @@
       "registered_devices": true
     }
   ],
-  "documentation": "https://github.com/xuanxuan000/linknlink-local/blob/main/README.md",
+  "documentation": "https://github.com/linknlink/linknlink-local/blob/main/README.md",
   "iot_class": "local_polling",
   "loggers": ["linknlink"],
   "requirements": ["linknlink==0.2.4"],

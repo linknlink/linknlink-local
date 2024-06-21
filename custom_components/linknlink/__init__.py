@@ -15,11 +15,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up a linknlink device from a config entry."""
+    """Set up a LinknLink device from a config entry."""
     coordinator = LinknLinkCoordinator(hass, entry.data[CONF_MAC])
     if not await coordinator.async_setup():
         _LOGGER.error(
-            "Unable to setup linknlink device - config=%s",
+            "Unable to setup LinknLink device - config=%s",
             coordinator.config_entry.data,
         )
         raise ConfigEntryNotReady

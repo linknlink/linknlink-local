@@ -1,4 +1,10 @@
-The LinknLink integration allows you to control and monitor LinknLink universal remotes, smart plugs, power strips, switches and sensors. The following devices are supported:
+## Notice
+
+We have moved the official repository from the former developer's [repository](https://github.com/xuanxuan000/linknlink-local) to the official [linknlink repository](https://github.com/linknlink/linknlink-local). Please update your bookmarks and use the official repository for the latest updates and issues.
+
+---
+
+The LinknLink Local integration allows you to control and monitor LinknLink universal remotes, smart plugs, power strips, switches and sensors. The following devices are supported:
 
 - Sensors: `ehub`, `eTHS`, `eMotion`
 - Universal Remotes: `eHub`
