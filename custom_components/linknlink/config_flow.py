@@ -1,4 +1,6 @@
 """Config flow for linknlink devices."""
+from __future__ import annotations
+
 import errno
 from functools import partial
 import logging
@@ -14,10 +16,10 @@ from linknlink.exceptions import (
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.components import dhcp
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_TIMEOUT, CONF_TYPE
 from homeassistant.data_entry_flow import AbortFlow, FlowResult
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 
 from .const import DEFAULT_TIMEOUT, DEVICE_TYPES, DOMAIN
 
@@ -31,15 +33,12 @@ class linknlinkFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize the linknlink flow."""
-        self.device: llk.Device = None
+        self.device: llk.Device | None = None
 
     async def async_set_device(self, device: llk.Device, raise_on_progress=True):
         """Define a device for the config flow."""
         if device.type not in DEVICE_TYPES:
-            _LOGGER.error(
-                ("Unsupported device: %s"),
-                hex(device.devtype),
-            )
+            _LOGGER.error(("Unsupported device: %s"), hex(device.devtype))
             raise AbortFlow("not_supported")
 
         await self.async_set_unique_id(
@@ -53,12 +52,13 @@ class linknlinkFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             "host": device.host[0],
         }
 
-    async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
+    async def async_step_dhcp(self, discovery_info: DhcpServiceInfo) -> FlowResult:
         """Handle dhcp discovery."""
         host = discovery_info.ip
         unique_id = discovery_info.macaddress.lower().replace(":", "")
         await self.async_set_unique_id(unique_id)
         self._abort_if_unique_id_configured(updates={CONF_HOST: host})
+
         try:
             device = await self.hass.async_add_executor_job(llk.hello, host)
 
@@ -168,11 +168,7 @@ class linknlinkFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id="auth", errors=errors)
 
     async def async_step_reset(self, user_input=None, errors=None) -> FlowResult:
-        """Guide the user to unlock the device manually.
-
-        We are unable to authenticate because the device is locked.
-        The user needs to open the LinknLink app and unlock the device.
-        """
+        """Guide the user to unlock the device manually."""
         device = self.device
 
         if user_input is None:
@@ -191,11 +187,7 @@ class linknlinkFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_unlock(self, user_input=None) -> FlowResult:
-        """Unlock the device.
-
-        The authentication succeeded, but the device is locked.
-        We can offer an unlock to prevent authorization errors.
-        """
+        """Unlock the device."""
         device = self.device
         errors = {}
 
@@ -248,7 +240,6 @@ class linknlinkFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Create config entry."""
         device = self.device
 
-        # Abort reauthentication flow.
         self._abort_if_unique_id_configured(
             updates={CONF_HOST: device.host[0], CONF_TIMEOUT: device.timeout}
         )
