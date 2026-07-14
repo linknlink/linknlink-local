@@ -1,137 +1,99 @@
-"""Support for linknlink buttons."""
+"""Button entities for IR/RF commands learned via config subentries.
+
+Each ``controlled_device`` subentry represents an appliance (TV, fan,
+garage door, ...) and creates one button per learned command. The
+entities are registered against the subentry so Home Assistant removes
+them automatically when the appliance is deleted from the UI.
+"""
 from __future__ import annotations
 
 import logging
-import socket
-import asyncio
 
-from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
+from linknlink.exceptions import LinknLinkException
+
+from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import (
+    COMMAND_TYPE_IR,
+    CONF_COMMAND_TYPE,
+    CONF_COMMANDS,
+    DOMAIN,
+    SUBENTRY_TYPE_DEVICE,
+)
 from .coordinator import LinknLinkCoordinator
-from .entity import LinknLinkEntity
+from .helpers import data_packet
 
 _LOGGER = logging.getLogger(__name__)
 
-BUTTONS: tuple[ButtonEntityDescription, ...] = (
-    ButtonEntityDescription(
-        key="rmkey_pwr",
-        name="pwr",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_mute",
-        name="mute",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_up",
-        name="up",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_down",
-        name="down",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_left",
-        name="left",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_right",
-        name="right",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_ok",
-        name="ok",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_home",
-        name="home",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_menu",
-        name="menu",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_back",
-        name="back",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_volume_up",
-        name="volume_up",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_volume_down",
-        name="volume_down",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_set",
-        name="set",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_voice",
-        name="voice",
-    ),
-        ButtonEntityDescription(
-        key="rmkey_channel1",
-        name="channel1",
-    ),
-    ButtonEntityDescription(
-        key="rmkey_channel2",
-        name="channel2",
-    ),
-        ButtonEntityDescription(
-        key="rmkey_tv_av",
-        name="tv_av",
-    ),
-)
-
-buttonDic = {}
-
-def cabk(data: str):
-    print(f"trigger {data}")
-    buttonDic[data].press()
 
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the linknlink sensor."""
-
+    """Set up buttons for every controlled-device subentry."""
     coordinator: LinknLinkCoordinator = hass.data[DOMAIN][config_entry.entry_id]
-    if "rmkey_pwr" in coordinator.data:
-        buttonDic.clear()
-        entities = []
-        for description in BUTTONS:
-            entity = LinknLinkButton(coordinator, description)
-            entities.append(entity)
-            buttonDic[description.key] = entity
-        async_add_entities(entities)
-        # 注册回调
-        coordinator.api.cb = cabk
+
+    for subentry_id, subentry in config_entry.subentries.items():
+        if subentry.subentry_type != SUBENTRY_TYPE_DEVICE:
+            continue
+        command_type = subentry.data.get(CONF_COMMAND_TYPE, COMMAND_TYPE_IR)
+        entities = [
+            LinknLinkCommandButton(
+                coordinator, subentry_id, subentry.title, command_type, command, code
+            )
+            for command, code in subentry.data.get(CONF_COMMANDS, {}).items()
+        ]
+        if entities:
+            async_add_entities(entities, config_subentry_id=subentry_id)
 
 
-class LinknLinkButton(LinknLinkEntity, ButtonEntity):
-    """Representation of a linknlink button."""
+class LinknLinkCommandButton(CoordinatorEntity[LinknLinkCoordinator], ButtonEntity):
+    """A button that sends one learned IR/RF command."""
+
+    _attr_has_entity_name = True
 
     def __init__(
         self,
         coordinator: LinknLinkCoordinator,
-        description: ButtonEntityDescription,
+        subentry_id: str,
+        appliance_name: str,
+        command_type: str,
+        command: str,
+        code: str,
     ) -> None:
-        """Initialize the button."""
+        """Initialize the command button."""
         super().__init__(coordinator)
-        self.entity_description = description
-        self._attr_unique_id = f"{coordinator.api.mac.hex()}-{description.key}"
-
-    def press(self) -> None:
-        """Handle the button press."""
-        print("button press1.")
-        print(self.entity_description)
+        self._command = command
+        self._code = data_packet(code)
+        mac = coordinator.api.mac.hex()
+        self._attr_name = command
+        self._attr_unique_id = f"{mac}-{subentry_id}-{command}"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, f"{mac}-{subentry_id}")},
+            name=appliance_name,
+            manufacturer="LinknLink",
+            model=(
+                "Infrared device"
+                if command_type == COMMAND_TYPE_IR
+                else "Radio frequency device"
+            ),
+            via_device=(DOMAIN, mac),
+        )
 
     async def async_press(self) -> None:
-        """Handle the button press."""
-        print("button press2.")
-        print(self.entity_description)
+        """Send the learned command."""
+        try:
+            await self.coordinator.async_request(
+                self.coordinator.api.send_data, self._code
+            )
+        except (LinknLinkException, OSError) as err:
+            raise HomeAssistantError(
+                f"Failed to send command '{self._command}': {err}"
+            ) from err

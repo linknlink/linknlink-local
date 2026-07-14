@@ -43,5 +43,72 @@
       "invalid_host": "[%key:common::config_flow::error::invalid_host%]",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     }
+  },
+  "config_subentries": {
+    "controlled_device": {
+      "title": "IR/RF device",
+      "entry_type": "IR/RF device",
+      "initiate_flow": {
+        "user": "Add IR/RF device",
+        "reconfigure": "Reconfigure IR/RF device"
+      },
+      "step": {
+        "user": {
+          "title": "Add a controlled device",
+          "description": "Create a device controlled through this hub. You will be able to learn commands from its remote in the next steps.",
+          "data": {
+            "name": "Device name",
+            "command_type": "Command type"
+          }
+        },
+        "menu": {
+          "title": "Manage {name}",
+          "description": "{count} command(s) configured. Learn a new command from the original remote, enter a code manually, or finish.",
+          "menu_options": {
+            "learn": "Learn a command from the remote",
+            "manual": "Enter a code manually",
+            "remove": "Remove commands",
+            "finish": "Save and finish"
+          }
+        },
+        "learn": {
+          "title": "Learn a command",
+          "description": "Name the command you are about to learn (for example: power, volume up).",
+          "data": {
+            "name": "Command name"
+          }
+        },
+        "manual": {
+          "title": "Enter a code",
+          "description": "Paste a base64 code (with or without the `b64:` prefix).",
+          "data": {
+            "name": "Command name",
+            "code": "Code"
+          }
+        },
+        "remove": {
+          "title": "Remove commands",
+          "description": "Select the commands to remove.",
+          "data": {
+            "remove": "Commands"
+          }
+        }
+      },
+      "progress": {
+        "learn_ir": "Point the remote at the LinknLink device and press the '{command}' button.",
+        "sweep_rf": "Press and hold the '{command}' button on the remote to sweep the frequency.",
+        "learn_rf": "Now press the '{command}' button again (short press)."
+      },
+      "error": {
+        "learn_timeout": "No code received before the timeout. Try again.",
+        "sweep_timeout": "No frequency found before the timeout. Try again.",
+        "learn_failed": "The device failed to learn the command. Check the logs for details.",
+        "invalid_code": "Invalid base64 code."
+      },
+      "abort": {
+        "not_loaded": "The hub is not loaded. Make sure the device is online and try again.",
+        "reconfigure_successful": "Device updated."
+      }
+    }
   }
 }

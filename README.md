@@ -9,6 +9,18 @@ The LinknLink Local integration allows you to control and monitor LinknLink univ
 - Sensors: `ehub`, `eTHS`, `eMotion`
 - Universal Remotes: `eHub`
 
+## Managing IR/RF devices from the UI (Home Assistant 2026.7+)
+
+You can add appliances controlled through the hub directly from the UI, similar to how ZHA manages Zigbee devices:
+
+1. Go to **Settings → Devices & services → LinknLink**.
+2. On the hub's entry, select **Add IR/RF device**.
+3. Name the appliance, pick **ir** or **rf**, and follow the prompts to learn commands from the original remote (or paste `b64:` codes manually).
+
+Each appliance appears as its own device with one button entity per command. Use **Reconfigure** on the appliance to learn more commands or remove existing ones, and delete the appliance from the UI to remove all of its entities.
+
+The hub also registers as a transmitter for Home Assistant's native `infrared` (2026.4+) and `radio_frequency` (2026.5+) platforms, so integrations like Honeywell String Lights and Novy Cooker Hood can send commands through it, and it shows up in the dedicated IR/RF panels introduced in 2026.7.
+
 ## Entities and subdomains
 
 There is no more need to set up platforms except for custom IR/RF switches. Once the device is configured all entities will be created automatically.
