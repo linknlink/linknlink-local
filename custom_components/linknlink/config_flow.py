@@ -14,10 +14,11 @@ from linknlink.exceptions import (
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.components import dhcp
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_TIMEOUT, CONF_TYPE
-from homeassistant.data_entry_flow import AbortFlow, FlowResult
+from homeassistant.data_entry_flow import AbortFlow
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 
 from .const import DEFAULT_TIMEOUT, DEVICE_TYPES, DOMAIN
 
@@ -53,7 +54,7 @@ class linknlinkFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             "host": device.host[0],
         }
 
-    async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
+    async def async_step_dhcp(self, discovery_info: DhcpServiceInfo) -> ConfigFlowResult:
         """Handle dhcp discovery."""
         host = discovery_info.ip
         unique_id = discovery_info.macaddress.lower().replace(":", "")
@@ -78,7 +79,7 @@ class linknlinkFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle a flow initiated by the user."""
         errors = {}
 
@@ -126,7 +127,7 @@ class linknlinkFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_auth(self) -> FlowResult:
+    async def async_step_auth(self) -> ConfigFlowResult:
         """Authenticate to the device."""
         device = self.device
         errors = {}
@@ -167,7 +168,7 @@ class linknlinkFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         )
         return self.async_show_form(step_id="auth", errors=errors)
 
-    async def async_step_reset(self, user_input=None, errors=None) -> FlowResult:
+    async def async_step_reset(self, user_input=None, errors=None) -> ConfigFlowResult:
         """Guide the user to unlock the device manually.
 
         We are unable to authenticate because the device is locked.
@@ -190,7 +191,7 @@ class linknlinkFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             {CONF_HOST: device.host[0], CONF_TIMEOUT: device.timeout}
         )
 
-    async def async_step_unlock(self, user_input=None) -> FlowResult:
+    async def async_step_unlock(self, user_input=None) -> ConfigFlowResult:
         """Unlock the device.
 
         The authentication succeeded, but the device is locked.
@@ -244,7 +245,7 @@ class linknlinkFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_finish(self) -> FlowResult:
+    async def async_finish(self) -> ConfigFlowResult:
         """Create config entry."""
         device = self.device
 
