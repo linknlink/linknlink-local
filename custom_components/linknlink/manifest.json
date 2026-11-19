@@ -14,6 +14,6 @@
   "documentation": "https://github.com/linknlink/linknlink-local/blob/main/README.md",
   "iot_class": "local_polling",
   "loggers": ["linknlink"],
-  "requirements": ["linknlink==0.2.4"],
-  "version": "2024.5.9"
+  "requirements": ["linknlink==0.2.5"],
+  "version": "2024.5.10"
 }
